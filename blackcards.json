@@ -1,0 +1,13 @@
+{
+    "numberOfCards" : 8,
+    "cards" : {
+        "1" : { "id" : "1", "text" : "There's a new sitcom called the ClueCon Family and the next episode is all about ___" },
+        "2" : { "id" : "2", "text" : "Shhh, I know where the speakeasy is but you have to keep it a secret. The password is ___" },
+        "3" : { "id" : "3", "text" : "At ClueCon this year, I learned a lot about ___ from my peers" },
+        "4" : { "id" : "4", "text" : "The best way to meet people at ClueCon is ___" },
+        "5" : { "id" : "5", "text" : "Every great networking event needs ___" },
+        "6" : { "id" : "6", "text" : "ClueCon is all about bringing open source projects together, but it's also about ___" },
+        "7" : { "id" : "7", "text" : "I need a sensor that tracks ___ for my Maker Challenge entry" },
+        "8" : { "id" : "8", "text" : "___, BAM!" }
+    }
+}
