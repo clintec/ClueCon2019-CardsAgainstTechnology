@@ -1,3 +1,29 @@
+//--------------------------------------------------------
+/*
+    ClueCon 2019 - Cards Against Technology, ClueCon Edition
+    by Chris Cline
+
+    -- Player Object
+    player = {
+        "number" : "+12345677",
+        "name"   : "Bob",
+        "cards"  : [{card object}],
+        "wins"   : 0
+    }
+
+    -- Card Object  (blackcards.json & whitecards.json)
+    card = {
+        "id" : "12",
+        "text" : "Something Goes Here."
+    }
+
+    -- Loser Message Object (losermessages.json)
+    loserMsg = {
+        "id" : "7",
+        "text" : "Something Funny Here"
+    }
+*/
+
 // Dependencies
 const { RelayConsumer } = require('@signalwire/node');
 const blackCards = require('./blackcards.json');
@@ -9,13 +35,39 @@ const projectID = 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX';
 const apiToken = 'PTXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 const spaceURL = 'example.signalwire.com';
 
-const max_players = 3;        // total maximum number of players
-const numberOfRounds = 3;     // Total number of rounds to play
-const numberOfWhiteCards = 3; // number of white cards to deal out per player / per round.
-let fromHost = "";            // Host of game 
+// Game Configuration Settings
+const max_players = 3;          // total maximum number of players
+const numberOfRounds = 3;       // Total number of rounds to play
+const numberOfWhiteCards = 3;   // number of white cards to deal out per player / per round.
+
+// Other Global Variables
+let fromHost = "";              // Host of game 
+let judgeIndex = 0;             // Keeps track of judge recycling
+let players = {};               // List of Players
+let playerCount = 0;            // # of players
+let judge = {};                 // Current Judge
+let blackcard = {};             // Current Blackcard
+let gameStarted = false;        // Has the Game Started
+let usedCards = {};             // Used to ensure cards are only selected once per round
+let waitingRoom = {};           // Temporary holding spot for players awaiting name entry
+let judgeSelections = {};       // Options available for judge to select from
+let judgeSelectionCount = 0;    // # of options available for judge to select from.
+let roundIndex = 0;             // Current Round
+let topWinner = {};             // Player with most wins.
+let tiedPlayers = {};           // Other players tied with topWinner.
+
+// gameState = { NOT_STARTED, STARTED, ROUND_IN_PROGRESS, ROUND_COMPLETE }
+let gameState = "NOT_STARTED";
 
 //--------------------------------------------------------
 // Calling Functions
+
+/*
+    This function will place a telephony call to a number and leverage a text-to-speech engine 
+    to play a message to the recipient.
+    @param string number Phone number to call
+    @param string message Message to TTS to callee.
+*/
 const _callNumberWithTTSMessage = async (number, message) => {
     console.log("Calling number: " + number + "\nWith Message:\n" + message);
     var dialResult = await consumer.client.calling.dial({
@@ -37,6 +89,12 @@ const _callNumberWithTTSMessage = async (number, message) => {
       }  
 }
 
+/*
+    This function will place a telephony call to a player and leverage a text-to-speech engine 
+    to play a message to the recipient.
+    @param <playerObj> player Player to call
+    @param string message Message to TTS to callee.
+*/
 const _callPlayerWithTTSMessage = async (player, message) => {
     console.log("Calling player: " + player.name + "\nWith Message:\n" + message);
     _callNumberWithTTSMessage(player.number, message);
@@ -44,6 +102,11 @@ const _callPlayerWithTTSMessage = async (player, message) => {
 
 //--------------------------------------------------------
 // SMS Functions
+/*
+    This function will send a text to a number.
+    @param string number Phone number to send the text to.
+    @param string message Message to text.
+*/
 const _sendMessageToNumber = async (number, message) => {
     console.log("Number: " + number + "\nMessage: " + message);
     console.log("Message Length: " + message.length);
@@ -66,11 +129,20 @@ const _sendMessageToNumber = async (number, message) => {
     }
 }
 
+/*
+    This function will send a text to a player.
+    @param <playerObj> Player Player to send the text to.
+    @param string message Message to text.
+*/
 const _sendMessageToPlayer = (player, message) => {
     setTimeout(function(){ _sendMessageToNumber(player.number, message); }, 2000);
     
 }
 
+/*
+    This function will send a text to all players.
+    @param string message Message to text.
+*/
 const _sendMessageToAllPlayers = (message) => {
     for (var player_key in players) {
         var player = players[player_key];
@@ -78,6 +150,10 @@ const _sendMessageToAllPlayers = (message) => {
     }    
 }
 
+/*
+    This function will send a text to all players, except the judge.
+    @param string message Message to text.
+*/
 const _sendMessageToAllPlayersButJudge = (message) => {
     for (var player_key in players) {
         var player = players[player_key];
@@ -87,6 +163,10 @@ const _sendMessageToAllPlayersButJudge = (message) => {
     }    
 }
 
+/*
+    This function will provide the game logic to process an incoming message.
+    @param <Relay.Message> message SMS Message to procecss.
+*/
 const _processIncomingMessage = (message) => {
     console.log("Processing new message: [" + message.from + "|" + message.body + "]");
     console.log("GameState: " + gameState);
@@ -197,53 +277,13 @@ const _processIncomingMessage = (message) => {
             }
             break;
     }
-}
+}    
 
-// Create the SignalWire Consumer
-const consumer = new RelayConsumer({
-    project: projectID,
-    token: apiToken,
-    contexts: ['default'],
-  
-    // Process new inbound message
-    onIncomingMessage: async (message) => {
-      // initialize fromHost
-      if (fromHost == "") {
-          fromHost = message.to;
-      }
-      console.log('Received message', message.id, message.context);
-      _processIncomingMessage(message);
-    }
-  });
-    
-//--------------------------------------------------------
 /*
-    player = {
-        number : "+12345677",
-        name   : "Bob",
-        cards  : [15, 2, 11, 5, 6],
-        wins   : 0
-    }
+    This function places the potential player in the waiting room and requests that they
+    enter their number to complete entry in the game.
+    @param <Relay.Message> message Details to manage player.
 */
-let judgeIndex = 0;
-let players = {};
-let playerCount = 0;
-let round = {};
-let judge = {};
-let blackcard = {};
-let gameStarted = false;
-let usedCards = {};
-let waitingRoom = {};
-let judgeSelections = {};
-let judgeSelectionCount = 0;
-let roundIndex = 0;
-let topWinner = {};
-let tiedPlayers = {};
-
-// gameState = { NOT_STARTED, STARTED, ROUND_IN_PROGRESS, ROUND_COMPLETE }
-let gameState = "NOT_STARTED";
-
-// join function
 const _join = (message) => {
     // add potential player to waitingRoom.
     console.log("Adding [" + message.from + "] to the waiting room.");
@@ -254,7 +294,11 @@ const _join = (message) => {
    _sendMessageToNumber(message.from, msg);
 }
 
-// list players 
+/*
+    This function returns a string object that contains a full list of players that
+    have completely registered for the game.
+    @return string list of players.
+*/
 const _listPlayers = () => {
     var playerList = "Players: (" + playerCount + " of " + max_players + ")";
     for (var player_key in players) {
@@ -267,6 +311,10 @@ const _listPlayers = () => {
     return playerList;
 }
 
+/*
+    This function completes the entry process for the game.
+    @param <Relay.Message> Details of player.
+*/
 const _namePlayer = (message) => {
     // Announce player
     if (playerCount < max_players) {
@@ -298,12 +346,19 @@ const _namePlayer = (message) => {
     }
 }
 
+/*
+    This function selects the blackcard for a given round.
+*/
 const _selectBlackCard = () => {
    var index = Math.floor(Math.random() * blackCards.numberOfCards) + 1;
    blackcard = blackCards.cards[index];
    console.log("Black Card Selected: " + blackcard.text);
 }
 
+/*
+    This function deals the white cards for a given player.
+    @param <playerObj> player Player for whom white card selection is required.
+*/
 const _selectWhiteCards = (player) => {
     for (i = 1; i <= numberOfWhiteCards; i++) {
         var validCard = false;
@@ -321,6 +376,9 @@ const _selectWhiteCards = (player) => {
     }
 }
 
+/*
+    This method initializes the game.
+*/
 const _initializeGame = () => {
     // Clear Waitingroom.
     console.log("Clearing waiting room.");
@@ -328,7 +386,9 @@ const _initializeGame = () => {
     roundIndex = 0;
 }
 
-// start game
+/*
+    This method starts the game.
+*/
 const _startGame = () => {
     console.log("Starting game...");
     gameState = "STARTED";
@@ -338,6 +398,9 @@ const _startGame = () => {
     _startRound();
 }
 
+/*
+    This method initializes the round.
+*/
 const _initializeRound = () => {
 
     // reset judge if necessary
@@ -359,7 +422,9 @@ const _initializeRound = () => {
     roundIndex += 1;
 }
 
-// start round
+/*
+    This method starts the round.
+*/
 const _startRound = () => {
     _initializeRound();
 
@@ -415,6 +480,10 @@ const _startRound = () => {
         }
 }
 
+/*
+    This method returns a string with a complete list of winners.
+    @return string list of winners.
+*/
 const _listWinners = () => {
     var winners = "Winner(s) - Total Wins: " + topWinner.wins + "\n";
     winners += topWinner.name;
@@ -425,7 +494,11 @@ const _listWinners = () => {
     return winners;
 }
 
-// complete round 
+/*
+    This method performs all actions upon completion of a round of play.
+    If this is the last round of play, it will additionally, determine the winner(s)
+    and perform the required actions to notify the winner.
+*/
 const _completeRound = () => {
     console.log("Completing Round...");
     gameState = "ROUND_COMPLETE";
@@ -497,4 +570,21 @@ const _completeRound = () => {
 
 //-----------------------------------------
 // start it up.
+// Create the SignalWire Consumer
+const consumer = new RelayConsumer({
+    project: projectID,
+    token: apiToken,
+    contexts: ['default'],
+  
+    // Process new inbound message
+    onIncomingMessage: async (message) => {
+      // initialize fromHost
+      if (fromHost == "") {
+          fromHost = message.to;
+      }
+      console.log('Received message', message.id, message.context);
+      _processIncomingMessage(message);
+    }
+});
+
 consumer.run()
