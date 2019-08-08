@@ -16,7 +16,9 @@ To run this project, you must have NodeJS installed.  You must also have a Signa
 You can obtain a SignalWire account by visiting:  https://signalwire.com/signup
 
 The next steps are to install the SignalWire API and other dependencies.
+
 `npm install @signalwire/node`
+
 `npm install https`
 
 Now you must obtain your SignalWire Space, ProductKey and APIToken.  This can be completed on your SignalWire dashboard.  Once you have both secrets add them into the (cluecon_cards.js) project.
