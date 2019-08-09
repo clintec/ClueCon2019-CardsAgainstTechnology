@@ -2,7 +2,7 @@
 ClueCon 2019 - Cards Against Technology, ClueCon Edition
 
 This project is designed as an example to implement SignalWire's new NodeJS API.
-It implements the API leveraging the Relay Consumer and provides a configurable, multi-player SMS game of Cards Against Technologhy - ClueCon Edition.  The cards provided here were created by Ms. Abbi Minessaleds (https://twitter.com/abbimini) and includes the most famous card ... the "James Body" card, in honor of Mr. James Body, himself (https://twitter.com/jamesbody)!  Once the game has been played, a winner is decided and will subsequently be called roasting the other opponents.
+It implements the API leveraging the Relay Consumer and provides a configurable, multi-player SMS game of Cards Against Technologhy - ClueCon Edition.  The cards provided here were created by Ms. Abbi Minessales (https://twitter.com/abbimini) and includes the most famous card ... the "James Body" card, in honor of Mr. James Body, himself (https://twitter.com/jamesbody)!  Once the game has been played, a winner is decided and will subsequently be called roasting the other opponents.
 
 ## Goals of Project
 
