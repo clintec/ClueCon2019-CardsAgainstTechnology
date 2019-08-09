@@ -32,6 +32,8 @@ Now you must obtain your SignalWire Space, ProductKey and APIToken.  This can be
 Now, obtain a DID (Phone Number) from SignalWire.  This will be the phone number you will need to text into.
 Finally, if you are in trial mode, you must verify any phone number that is used for testing.  Following the Verify instructions within the Phone Numbers tab on the SignalWire Dashboard to complete this process.
 
+*Note*: Due to the volume of SMS messages sent in rapid succession, the "trial" account may not send all of the text messages, but instead throw an error due to the rate limit set on the trial account.
+
 ## Starting the Bot.
 To start the bot, simply perform the following at the command line:
 `node cluecon_cards.js`
