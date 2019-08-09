@@ -281,7 +281,7 @@ const _processIncomingMessage = (message) => {
 
 /*
     This function places the potential player in the waiting room and requests that they
-    enter their number to complete entry in the game.
+    enter their name to complete entry in the game.
     @param <Relay.Message> message Details to manage player.
 */
 const _join = (message) => {
