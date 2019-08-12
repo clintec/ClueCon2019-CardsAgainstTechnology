@@ -36,7 +36,7 @@ const apiToken = 'PTXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 const spaceURL = 'example.signalwire.com';
 
 // Game Configuration Settings
-const max_players = 3;          // total maximum number of players
+const max_players = 5;          // total maximum number of players
 const numberOfRounds = 3;       // Total number of rounds to play
 const numberOfWhiteCards = 3;   // number of white cards to deal out per player / per round.
 
@@ -178,7 +178,13 @@ const _processIncomingMessage = (message) => {
             } else {
                 // see if player is in waiting waitingRoom
                 if (waitingRoom[message.from] != null) {
-                    _namePlayer(message);
+                    // ensure player isn't already fully registered.
+                    if (players[message.from] != null) {
+                        _sendMessageToNumber(message.from, "You have already registered, please wait for game to fill up.\nAwaiting " + (max_players - playerCount) + " more players to join.");
+                    } else {
+                        // Register Player.
+                        _namePlayer(message);
+                    }
                 } else {
                     // tell user they must type JOIN.
                     _sendMessageToNumber(message.from, "Type JOIN to play.");
